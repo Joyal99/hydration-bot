@@ -1,12 +1,14 @@
-from telegram import Bot
+import os
 import schedule
 import asyncio
 import random
-from datetime import datetime
 import time
+from datetime import datetime
+from telegram import Bot
+from flask import Flask
 
-BOT_TOKEN = "7263721084:AAFK92i3VHEZPK7qTke1YTGLG9F5sKJ1Gxs"
-CHAT_ID = 5598573874   # Replace with your actual chat ID
+BOT_TOKEN = os.getenv("7263721084:AAFK92i3VHEZPK7qTke1YTGLG9F5sKJ1Gxs")
+CHAT_ID = int(os.getenv(5598573874))   # Replace with your actual chat ID
 
 MESSAGES = [
     "💧 Time to drink some water!",
@@ -16,6 +18,7 @@ MESSAGES = [
     "⏰ Water alarm — fill that bottle!"
 ]
 
+# Set up Telegram bot
 async def send_message():
     bot = Bot(token=BOT_TOKEN)
     message = random.choice(MESSAGES)
@@ -24,6 +27,7 @@ async def send_message():
     await bot.send_message(chat_id=CHAT_ID, text=full_message)
     print(f"✅ Sent: {full_message}")
 
+# Sync wrapper for schedule
 def job():
     try:
         loop = asyncio.new_event_loop()
@@ -32,15 +36,28 @@ def job():
         loop.close()
     except Exception as e:
         print(f"❌ Error sending message: {e}")
-        
-# Customize these times
-schedule.every().day.at("23:12").do(job)
-schedule.every().day.at("23:13").do(job)
-schedule.every().day.at("23:14").do(job)
-schedule.every().day.at("23:15").do(job)
 
-print("🤖 Hydration bot is running...")
+# Schedule your times
+schedule.every().day.at("10:00").do(job)
+schedule.every().day.at("13:00").do(job)
+schedule.every().day.at("16:00").do(job)
+schedule.every().day.at("20:00").do(job)
 
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+# Small web server to keep Replit alive
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+# Background thread to run scheduled jobs
+def run_schedule():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+# Start bot + Flask
+if __name__ == "__main__":
+    import threading
+    threading.Thread(target=run_schedule).start()
+    app.run(host='0.0.0.0', port=8080)
